@@ -1,0 +1,20 @@
+Make sure you have devkitPPC r19 or higher and the custom version of SDL-wii
+installed. (See SDL/Readme.txt) Then run "make" from the folder.
+
+If you wish to add debugging symbols, add "SYMBOLS=1" to the command. (Also be
+sure to edit src/osd/sdl/sdlmain.c to initalize the debugging method of your
+choice.) You can do a minimal build (only runs ROMs you can get from
+mamedev.org) by running "make SUBTARGET=tiny"
+
+If you have a dual or quad core, add "-j#" to the command. Good values for #
+are usually the number of cores your computer has plus one.
+
+The programs in the prec-build folder are needed for compiling. If you're
+trying to build this from Linux/Mac/etc. you will have to compile a copy of
+the tools yourself (not with these sources) and get the build apps from
+obj\*\*\build folder and copy them over manually. You can make just the
+nessisary executables and avoid compiling all of MAME by using
+"make buildtools". (Also be sure to change the value of CCEXE in the makefile
+to match your platform.) Because of the changes in SDL MAME Wii, you will have
+to get the clean sources yourself, which can be found here:
+http://rbelmont.mameworld.info/sdlmame0134u4.zip

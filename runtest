@@ -1,0 +1,153 @@
+#!/bin/sh
+# ----------------------------------------------------
+# MAME Testing script
+# (Windows only at the moment, sorry!)
+# 
+# Initial setup of the script:
+#
+#    1. Create a fresh directory mametest/
+#    2. Copy this script into it (mametest/runtest.cmd)
+#    3. Copy a mame.ini with your ROM paths into it
+#        (mametest/mame.ini)
+#    4. Copy a transparent crosshair cursor into it
+#        (mametest/cross.png)
+#
+# How to run a test:
+#
+#    1. Create a new subdirectory mametest/version/
+#    2. Copy mame.exe into it (mametest/version/mame.exe)
+#    3. Open a command prompt to mametest/version
+#    4. Run "..\runtest"
+#    5. Wait for all the tests to complete
+#
+# How to generate a report:
+#
+#    1. Open a command prompt to mametest.
+#    2. Make sure you have run tests for at least two 
+#        versions (mametest/ver1 and mametest/ver2)
+#    3. Create an output directory (mametest/report)
+#    4. Run "regrep report ver1\summary.log ver2\summary.log"
+#    5. Upload the report directory to mamedev.org :)
+#    6. Differing files are printed to stdout; redirect
+#        to create a list that can be run again via
+#        this script
+# ----------------------------------------------------
+
+MAMEEXE=./sdlmame
+
+# ----------------------------------------------------
+# We require mame.exe to be present
+# ----------------------------------------------------
+
+if [ ! -f $MAMEEXE ]; then
+	echo Missing $MAMEEXE
+	exit 1
+fi
+
+# ----------------------------------------------------
+# By default we generate our own list; however, a list 
+# can be specified by an alternate parameter. If a 
+# parameter is given, we leave the existing log and 
+# snap directories intact; otherwise, we delete them 
+# and start fresh.
+# ----------------------------------------------------
+
+LIST=gamelist.txt
+if [ "$1" = "" ]; then
+	echo Generating full list
+	$MAMEEXE -ls >$LIST
+	echo Deleting old data
+	[ -d log ] && rm -rf log
+	[ -d snap ] && rm -rf snap
+	[ -f summary.log ] && rm -f summary.log
+else
+	LIST=$1
+	@echo Re-testing $1
+fi
+
+# ----------------------------------------------------
+# Always delete all cfg, nvram, and diff files.
+# ----------------------------------------------------
+
+[ -d cfg ] && rm -rf cfg
+[ -d nvram ] && rm -rf nvram
+[ -d diff ] && rm -rf diff
+
+# ----------------------------------------------------
+# Make sure we use transparent crosshairs.
+# ----------------------------------------------------
+
+[ ! -d artwork ] && mkdir artwork
+
+cp ../cross.png artwork/cross0.png
+cp ../cross.png artwork/cross1.png
+cp ../cross.png artwork/cross2.png
+cp ../cross.png artwork/cross3.png
+
+# ----------------------------------------------------
+# If we don't yet have a summary.log, create a new one.
+# ----------------------------------------------------
+
+if [ ! -f summary.log ]; then
+	$MAMEEXE >summary.log
+	echo @@@@@dir=`pwd`>>summary.log
+fi
+
+# ----------------------------------------------------
+# Create the log directory and a starting timestamp.
+# ----------------------------------------------------
+
+[ ! -d log ] && mkdir log
+echo @@@@@start=`date`>>summary.log
+
+# ----------------------------------------------------
+# runone: Execute a single game for 30 seconds and
+# output the results to the summary.log.
+# ----------------------------------------------------
+
+runone () {
+	echo Testing $1 \($2\)...
+	echo >>summary.log
+	$MAMEEXE $1 -ftr 1800 -nothrottle -inipath .. -w -video none  1>log/$1.txt 2>log/$1.err
+	ret=$?
+	echo $1 $ret
+	if [ $ret -eq 100 ]; then
+		echo @@@@@driver=$1: Exception>>summary.log
+		cat log/$1.err >>summary.log
+ 	# elif [ $ret -eq 5 ]; then
+	# Do nothing -- game does not exist in this build
+	elif [ $ret -eq 3 ]; then
+		echo @@@@@driver=$1: Fatal error>>summary.log
+		cat log/$1.err >>summary.log
+	elif [ $ret -eq 2 ]; then
+		echo @@@@@driver=$1: Missing files>>summary.log
+		cat log/$1.err >>summary.log
+	elif [ $ret -eq 1 ]; then
+		echo @@@@@driver=$1: Failed validity check>>summary.log
+		cat log/$1.err >>summary.log
+	elif [ $ret -eq 0 ]; then
+		echo @@@@@driver=$1: Success>>summary.log
+	else 
+		echo @@@@@driver=$1: Unknown error $ret>>summary.log
+	fi
+	echo @@@@@source=$2>>summary.log
+}
+
+process () {
+	while read i j; do 
+		runone $i `basename $j`
+	done
+}
+
+# ----------------------------------------------------
+# Iterate over drivers in the log, extracting the 
+# source filename as well, and passing both to runone.
+# ----------------------------------------------------
+
+cat $LIST | process 
+
+# ----------------------------------------------------
+# Add a final timestamp and we're done.
+# ----------------------------------------------------
+
+echo @@@@@stop=`date`>>summary.log
