@@ -461,7 +461,8 @@ int SDL_main(int argc, char **argv)
 	}
 #endif 
 
-	res = cli_execute(nargc, (char **) nargv, mame_sdl_options);
+	//res = cli_execute(nargc, (char **) nargv, mame_sdl_options);
+	res = cli_execute(argc, argv, mame_sdl_options);
 
 #ifdef MALLOC_DEBUG
 	{
