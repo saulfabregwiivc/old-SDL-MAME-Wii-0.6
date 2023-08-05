@@ -360,7 +360,7 @@ static int drawgx_window_create(sdl_window_info *window, int width, int height)
 	switch (vmode->viTVMode >> 2)
 	{
 		case VI_PAL:
-			vmode = &TVPal574IntDfScale;
+			vmode = &TVPal576IntDfScale;
 			vmode->xfbHeight = 480;
 			vmode->viYOrigin = (VI_MAX_HEIGHT_PAL - 480)/2;
 			vmode->viHeight = 480;
